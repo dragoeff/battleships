@@ -19,7 +19,7 @@ mb_internal_encoding('utf-8');
  * @return array
  */
 function getCoreComponents() {
-	return ['Config', 'ShipFactory', 'Ship'];
+	return ['Config', 'DataManagement', 'ShipFactory', 'Ship'];
 }
 
 foreach (getCoreComponents() as $file) {

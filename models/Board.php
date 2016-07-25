@@ -24,10 +24,11 @@ class Board extends Shot implements iGame {
 			'grid' => [],
 			'ships_grid' => [],
 		],
+		$_data_manager,
 		$_vertical_grid_range = [];
 		$_horizontal_grid_range = [];
-	
-	public function __construct(array $ships) {		
+
+	public function __construct(array $ships) {
 		foreach ($ships as $ship_type => $number_of_ships) {
 			while(0 < $number_of_ships) {
 				$this->_ships[] = ShipFactory::build($ship_type);
@@ -36,6 +37,7 @@ class Board extends Shot implements iGame {
 		}
 
 		$this->_total_ships = count($this->_ships);
+		$this->_data_manager = SerializedDataManagement::getInstance();
 	}
 
 	/**
@@ -52,6 +54,8 @@ class Board extends Shot implements iGame {
 		}
 
 		$this->_data['grid'] = $this->_grid;
+		$this->_data_manager->save($this->_data);
+
 		$this->_placeShips();
 	}
 
@@ -72,22 +76,24 @@ class Board extends Shot implements iGame {
 
 		$this->_data['ships'] = $this->_ships;
 		$this->_data['ships_grid'] = $ship_position->get_grid();
+
+		$this->_data_manager->save($this->_data);
 	}
 
 	/**
 	 * Shoot on target
-	 * 
+	 *
 	 * @return void
 	 * @access public
 	 */
 	public function shoot($shot_coordinates) {
 		$this->_shot_coordinates = !empty($shot_coordinates['xy']) ? $shot_coordinates['xy'] : $shot_coordinates;
 
-		if($this->validateCoordinates()) {
+		if($this->_validateCoordinates()) {
 			$this->_converted_coordinate_array = Convertor::ToArray($this->_shot_coordinates);
 			$this->_ship_position = Convertor::ToString($this->_shot_coordinates);
-			$this->_data = $this->saveData->get();
-			
+			$this->_data = $this->_data_manager->read();
+
 			if($this->_isAlreadyPlayed()) {
 				$this->message = 'Those coordinates have already been tried.';
 			} else {
@@ -99,11 +105,11 @@ class Board extends Shot implements iGame {
 				} else {
 					$this->message = 'Hit! Right on target.';
 					$this->_setHitStatus(iGame::HIT);
-					
+
 					if($this->_isShipSunk()) {
 						$this->message = 'HIT!!! Congratulations you sunk this ship.';
 					}
-					
+
 					if($this->_isGameOver()) {
 						$this->message = 'Well done! You completed the game in ' . $this->_getShotAttempts() . ' shots.';
 					}

@@ -54,6 +54,14 @@ final class DefaultConfig {
 	 */
 	private $MODELS_PATH;
 
+	/**
+	 * Local path of the application cache on the server.
+	 *
+	 * @var string
+	 * @access private
+	 */
+	private $CACHE_PATH;
+
 	/******************************************************************
 	 * TEMPLATE SETTINGS
 	 ******************************************************************/
@@ -111,6 +119,7 @@ final class DefaultConfig {
 		$this->MODELS_PATH = $this->ROOT_PATH . 'models' . DS;
 		$this->LAYOUTS_PATH = $this->ROOT_PATH . 'templates' . DS . 'layouts' . DS;
 		$this->VIEWS_PATH = $this->ROOT_PATH . 'templates';
+		$this->CACHE_PATH = $this->ROOT_PATH . 'cache';
 
 		$real_path = rtrim(realpath($_SERVER['DOCUMENT_ROOT']), DS);
 		if (basename($_SERVER['SCRIPT_NAME']) == 'index.php') {

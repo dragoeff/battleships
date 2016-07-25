@@ -21,7 +21,7 @@ class Shot {
 	protected function _getShotAttempts() {
 		return count($this->_data['user_shots']);
 	}
-	
+
 	 /**
 	* Check there is a ship on that position
 	*
@@ -29,14 +29,14 @@ class Shot {
 	* @access protected
 	*/
 	protected function _isHit() {
-		$grid = $this->saveData->get()['shipField'];
-		
+		$grid = $this->_data_manager->read()['shipField'];
+
 		if(isset($grid[$this->_converted_coordinate_array['x']][$this->_converted_coordinate_array['y']])){
 			if($grid[$this->_converted_coordinate_array['x']][$this->_converted_coordinate_array['y']] == iGame::SHIP){
 				return true;
 			}
 		}
-		
+
 		return false;
 	}
 
@@ -49,7 +49,7 @@ class Shot {
 	protected function _isAlreadyPlayed() {
 		return (isset($this->_data['user_shots'])) ? in_array($this->_shot_coordinates, $this->_data['user_shots']) : false;
 	}
-	
+
 	/**
 	 * Set mark on this coordinate when grid is rebuild
 	 *
@@ -58,7 +58,7 @@ class Shot {
 	 */
 	protected function _setHitStatus($hit_status) {
 		$this->_data['grid'][$this->_converted_coordinate_array['x']][$this->_converted_coordinate_array['y']] = $hit_status;
-		$this->saveData->save($this->_data);
+		$this->_data_manager->save($this->_data);
 	}
 
 	/**
@@ -69,7 +69,7 @@ class Shot {
 	 */
 	protected function _saveUserHits() {
 		$this->_data['user_shots'][] = $this->_shot_coordinates;
-		$this->saveData->save($this->_data);
+		$this->_data_manager->save($this->_data);
 	}
 
 	/**
@@ -79,9 +79,9 @@ class Shot {
 	 * @access protected
 	 */
 	protected function _isGameOver() {
-		return empty($this->getData()['ships']);
+		return empty($this->_data_manager->read()['ships']);
 	}
-	
+
 	/**
 	 * Check whether any of the ships has been hit or not
 	 *
@@ -91,7 +91,7 @@ class Shot {
 	protected function _isShipSunk() {
 		$result = false;
 		$ships = $this->_data['ships'];
-		
+
 		for ($i=0; $i < count($ships); $i++) {
 			if($ships[$i]->is_hit($this->_ship_position)) {
 				$ships[$i]->remove_hit_coordinate($this->_ship_position);
@@ -106,18 +106,18 @@ class Shot {
 		}
 
 		$this->_data['ships'] = $ships;
-		$this->saveData->save($this->_data);
-		
+		$this->_data_manager->save($this->_data);
+
 		return $result;
 	}
-	
+
 	/**
 	 * Validate coordinates
 	 *
 	 * @return boolean
 	 * @access protected
 	 */
-	protected function _validateCoordinates() { 
+	protected function _validateCoordinates() {
 		return (bool)preg_match('/^([' . char(iGame::ASCII_A) . '-' . char(iGame::ASCII_A + iGame::GRID_SIZE - 1) . '])([1-' . iGame::GRID_SIZE - 1 . ']|' . iGame::GRID_SIZE . ')$/i', $this->_shot_coordinates);
 	}
 }
