@@ -1,6 +1,5 @@
-# battleships
-#Battlelship
-===========
+Battlelships
+============
 
 ### Battleships game implementation for console and web.
 
@@ -11,14 +10,18 @@ Backdoor special word available - “show” for both web and cli. If applied sh
 Special word “reset” available under cli. Used to reset the game.
 
 Interface:
+
 . = no shot
+
 - = miss
+
 x = hit
+
 
 Starting the game:
 - web: `//host.domain/index.php`
 - cli: `php /path_to_game/index.php`
 
-- [x] **Requires PHP 5.6.\***
+- [x] **Requires PHP 5.6.***
 
-More about the game: http://en.wikipedia.org/wiki/Battleship (game)
+More about the game: (https://en.wikipedia.org/wiki/Battleship_(game))
