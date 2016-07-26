@@ -1,7 +1,5 @@
 <?php
 
-namespace Battleships\Core;
-
 /**
  * Implementation of parameterized factory pattern
  *
@@ -18,7 +16,7 @@ class ShipFactory {
 				break;
 		}
 
-		!class_exists($class) && include(Config()->MODELS_PATH . $class . '.php');
+		!class_exists($class) && include(Config()->CORE_PATH . $class . '.php');
 
         return new $class();
 	}

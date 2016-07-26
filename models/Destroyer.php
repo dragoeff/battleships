@@ -1,14 +1,12 @@
 <?php
 
-namespace Battleships\Models;
-
 /**
  * class Destroyer
  *
  * @abstract
  * @author Svetoslav Dragoev
  */
-class Destryoer extends Ship {
-	protected $_name = 'destryoer';
+class Destroyer extends Ship {
+	protected $_name = 'destroyer';
 	protected $_size = 4;
 }

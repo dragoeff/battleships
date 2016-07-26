@@ -1,32 +1,59 @@
 <?php
 
-namespace Battleships\Models;
-
-use Battleships\Core\Ship;
-use Battleships\Core\ShipFactory;
-
 /**
  * class Board
  * Represents game board grid style
  *
  * @author Svetoslav Dragoev
  */
-class Board extends Shot implements iGame {
-	protected
-		$_message = '',
-		$_total_ships = 0;
+class Board implements iGame {
+	use Shot;
+	use CoordinatesTranslator;
+	use Messanger;
+	
+	/**
+	 * Keep log of the number of ships generated
+	 *
+	 * @var integer
+	 * @access protected
+	 */
+	protected $_total_ships = 0;
 
-	private
-		$_grid = [],
-		$_ships = [],
-		$_data = [
-			'user_shots' => 0,
-			'grid' => [],
-			'ships_grid' => [],
-		],
-		$_data_manager,
-		$_vertical_grid_range = [];
-		$_horizontal_grid_range = [];
+	/**
+	 * Board grid
+	 *
+	 * @var array
+	 * @access private
+	 */
+	private	$_grid = [];
+
+	/**
+	 * Ship objects
+	 *
+	 * @var array of object
+	 * @access private
+	 */
+	private $_ships = [];
+
+	/**
+	 * Persistant data
+	 *
+	 * @var array
+	 * @access private
+	 */
+	private $_data = [
+		'user_shots' => [],
+		'public_grid' => [],
+		'military_grid' => [],
+	];
+	
+	/**
+	 * Data management instance
+	 *
+	 * @var object
+	 * @access private
+	 */
+	private $_data_manager;
 
 	public function __construct(array $ships) {
 		foreach ($ships as $ship_type => $number_of_ships) {
@@ -47,13 +74,16 @@ class Board extends Shot implements iGame {
 	 * @access public
 	 */
 	public function build() {
-		foreach ($this->get_horizontal_grid_range() as $horizontal_key => $letter) {
-			foreach ($this->get_vertical_grid_range() as $vertical_key => $number) {
-				$this->_grid[$horizontal_key][$vertical_key] = iGame::BLANK;
+		for($y = 0; $y < iGame::GRID_SIZE; $y++) {
+			for($x = 0; $x < iGame::GRID_SIZE; $x++) {
+				$this->_grid[$y][$x] = iGame::BLANK;
 			}
 		}
 
-		$this->_data['grid'] = $this->_grid;
+		// init/reset data
+		$this->_message = '';
+		$this->_data['user_shots'] = [];
+		$this->_data['public_grid'] = $this->_grid;
 		$this->_data_manager->save($this->_data);
 
 		$this->_placeShips();
@@ -74,8 +104,11 @@ class Board extends Shot implements iGame {
 			$ship->set_coordinate($ship_position->get_ship_coordinates());
 		}
 
+		// keep record for each ship so we can later register hits and validate if ship has sink or not
 		$this->_data['ships'] = $this->_ships;
-		$this->_data['ships_grid'] = $ship_position->get_grid();
+
+		// record grid with ships presented, don't let spies lay hands over it
+		$this->_data['military_grid'] = $ship_position->get_grid();
 
 		$this->_data_manager->save($this->_data);
 	}
@@ -86,47 +119,81 @@ class Board extends Shot implements iGame {
 	 * @return void
 	 * @access public
 	 */
-	public function shoot($shot_coordinates) {
-		$this->_shot_coordinates = !empty($shot_coordinates['xy']) ? $shot_coordinates['xy'] : $shot_coordinates;
+	public function shoot($shot_coordinates = null) {
+		$this->_shot_coordinates = $shot_coordinates;
 
-		if($this->_validateCoordinates()) {
-			$this->_converted_coordinate_array = Convertor::ToArray($this->_shot_coordinates);
-			$this->_ship_position = Convertor::ToString($this->_shot_coordinates);
-			$this->_data = $this->_data_manager->read();
 
-			if($this->_isAlreadyPlayed()) {
-				$this->message = 'Those coordinates have already been tried.';
-			} else {
-				$this->_saveUserHits($this->_shot_coordinates);
-
-				if(!$this->_isHit($this->_shot_coordinates)) {
-					$this->_setHitStatus(iGame::MISS);
-					$this->message = 'That is a miss';
-				} else {
-					$this->message = 'Hit! Right on target.';
-					$this->_setHitStatus(iGame::HIT);
-
-					if($this->_isShipSunk()) {
-						$this->message = 'HIT!!! Congratulations you sunk this ship.';
-					}
-
-					if($this->_isGameOver()) {
-						$this->message = 'Well done! You completed the game in ' . $this->_getShotAttempts() . ' shots.';
-					}
-				}
-			}
-		} else {
-			$this->message = 'Those coordinates wont work. Please try again.';
+		if($this->_isGameOver()) {
+			$this->generate_messsage('game_over', $this->_getShotAttempts());
+			goto end;
 		}
+
+		if($this->_isAlreadyPlayed()) {
+			$this->generate_messsage('already_played');
+			goto end;
+		}
+
+		if(!$this->_validateCoordinates()) {
+			$this->generate_messsage('invalid_coordinates');
+			goto end;
+		}
+
+		// translated shot coordinates into array [x, y]
+		$this->_shot_coordinates_array = $this->coordinates_to_array($this->_shot_coordinates);
+		// translated shot coordinates into string 13
+		$this->_shot_coordinates_string = $this->coordinates_to_string($this->_shot_coordinates);
+
+		$this->_saveUserHits($this->_shot_coordinates);
+
+		if(!$this->_isHit($this->_shot_coordinates)) {
+			$this->_setHitStatus(iGame::MISS);
+			$this->generate_messsage('shot_miss');
+		} else {
+			$this->generate_messsage('shot_hit');
+			$this->_setHitStatus(iGame::HIT);
+
+			if($this->_isShipSunk()) {
+				$this->generate_messsage('sunk_ship');
+				$this->_isGameOver() && $this->_message .= $this->get_new_line() . $this->generate_messsage('game_over', $this->_getShotAttempts());
+			}
+
+		}
+
+		end:;
 	}
 
 	/**
-	 * Get all grids
+	 * Get persistant data
+	 *
+	 * @param string $key any of the persistant data keys which data we search - public_grid, military_grid, ships, user_shots
+	 * @return array
+	 */
+	public function get_data($key = null) {
+		if($key) {
+			return !empty($this->_data[$key]) ? $this->_data[$key] : null;
+		}
+
+		return $this->_data;
+	}
+
+	/**
+	 * Set persistant data
 	 *
 	 * @return array
 	 */
-	public function get_data() {
-		return $this->_data;
+	public function set_data($data) {
+		$this->_data = $data;
+	}
+
+	/**
+	 * Reload persistant data from storage
+	 *
+	 * @param string $key any of the persistant data keys which data we search
+	 * @return array
+	 */
+	public function reload_persistant_data($key = null) {
+		$this->set_data($this->_data_manager->read());
+		return $this->get_data($key);
 	}
 
 	/**
@@ -139,37 +206,13 @@ class Board extends Shot implements iGame {
 	}
 
 	/**
-	 * Converts a string literal into an integer one
+	 * Return declared Data manager instance
 	 *
-	 * @example $char = a => ord(a) - 97 = 97-97 = 0
-	 *
-	 * @param  string $char A char in the scope of A-J
-	 * @return integer      The corresponding integer value
-	 */
-	public function translate_char($char) {
-		return ord(strtolower($char)) - iGame::ASCII_A;
-	}
-
-	/**
-	 * Converts a integer into a string literal
-	 *
-	 * @example $cooardinate = 1 => char(1 + 97 - 1) = ASCII(97)
-	 *
-	 * @param  integer $char An integer in the scope of 0-9
-	 * @return integer      The corresponding character value
-	 */
-	public function translate_number($coordinate) {
-		return char((int)$coordinate + iGame::ASCII_A - 1);
-	}
-
-	/**
-	 * Get message
-	 *
-	 * @return string
+	 * @return object
 	 * @access public
 	 */
-	public function get_message() {
-		return $this->_message;
+	public function get_data_manager() {
+		return $this->_data_manager;
 	}
 
 }

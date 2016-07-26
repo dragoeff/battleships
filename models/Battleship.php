@@ -1,7 +1,5 @@
 <?php
 
-namespace Battleships\Models;
-
 /**
  * class Battleship
  *

@@ -1,7 +1,5 @@
 <?php
 
-namespace Battleships\Core;
-
 /**
  * Config class
  * All settings and configuration for the application

@@ -1,7 +1,5 @@
 <?php
 
-namespace Battleships\Core;
-
 /**
  * Abstract Ship class
  *
@@ -96,5 +94,12 @@ abstract class Ship {
 		if(($key = array_search($xy, $this->_coordinates)) !== false) {
 			unset($this->_coordinates[$key]);
 		}
+	}
+
+	public function __sleep() {
+		return ['_coordinates', '_name', '_size'];
+	}
+
+	public function __wakeup() {
 	}
 }

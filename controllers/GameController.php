@@ -6,7 +6,6 @@
  * @author Svetoslav Dragoev
  */
 abstract class GameController {
-	use Messagener;
 
 	protected $_board;
 
@@ -23,7 +22,7 @@ abstract class GameController {
 	/**
 	 * Handle request and set message
 	 */
-	abstract public function shoot();
+	abstract public function shoot($params);
 
 	/**
 	 * Reveal ship positions

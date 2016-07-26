@@ -6,8 +6,8 @@
  * @author Svetoslav Dragoev
  */
 interface iDataManagement {
-	protected function read();
-	protected function _prepareData();
+	public function read();
+	public function prepare_data($data);
 }
 
 /**
@@ -28,14 +28,14 @@ abstract class DataManagement implements iDataManagement {
 	/**
 	 * The reference to the Singletone instance of this class
 	 *
-	 * @access private
+	 * @access protected
 	 */
-	private $_instance;
+	static protected $_instance;
 
 
 	protected function __construct() {
 		// set default file name, if none provided
-		$this->_file = 'data.cache';
+		$this->_file = 'data_' . md5(is_cli() ? gethostname() : $_SERVER['REMOTE_ADDR']) . '.cache';
 	}
 
 	/**
@@ -44,7 +44,7 @@ abstract class DataManagement implements iDataManagement {
 	 * @return Singleton The *Singleton* instance.
 	 */
 	public static function getInstance() {
-		if (null === static::$instance) {
+		if (null === static::$_instance) {
 			static::$_instance = new static();
 		}
 
@@ -56,15 +56,15 @@ abstract class DataManagement implements iDataManagement {
 	 *
 	 * @param mixed $data By presumption an array
 	 * @return boolean
-	 * @access protected
+	 * @access public
 	 */
-	protected function save($data) {
+	public function save($data) {
 		// apply cache/filter methods before saving data
-		$data = $this->_prepareData($data);
+		$data = $this->prepare_data($data);
 
 		$handle = fopen($this->get_file_path(), 'w+');
-		if(is_writable($handle)) {
-			fwrite($hamdle, $data);
+		if(is_writable($this->get_file_path())) {
+			fwrite($handle, $data);
 			fclose($handle);
 		} else {
 			throw new Exception('Unable to save file. File is not writeable.');
@@ -79,9 +79,9 @@ abstract class DataManagement implements iDataManagement {
 	 *
 	 * @abstract
 	 * @return mixed
-	 * @access protected
+	 * @access public
 	 */
-	abstract protected function read();
+	abstract public function read();
 
 	/**
 	 * Delete data, empty file
@@ -89,7 +89,7 @@ abstract class DataManagement implements iDataManagement {
 	 * @return boolean
 	 * @access public
 	 */
-	protected function delete() {
+	public function delete() {
 		if($handle = fopen($this->get_file_path(), 'w+')) {
 			fclose($handle);
 			return true;
@@ -105,7 +105,7 @@ abstract class DataManagement implements iDataManagement {
 	 * @access public
 	 */
 	protected function _deleteFile() {
-		if(file_exists($this->get_file_path()) {
+		if(file_exists($this->get_file_path())) {
 			return unlink($this->get_file_path());
 		}
 
@@ -120,7 +120,7 @@ abstract class DataManagement implements iDataManagement {
 	 * @return mixed
 	 * @access protected
 	 */
-	abstract protected function _prepareData();
+	abstract public function prepare_data($data);
 
 	/**
 	 * Set filename
@@ -151,7 +151,7 @@ abstract class DataManagement implements iDataManagement {
 	 * @access public
 	 */
 	public function get_file_path() {
-		return Config()->CACHE_PATH . $this->get_file_name();
+		return Config()->CACHE_PATH . DS . $this->get_file_name();
 	}
 
 	private function __clone() {}

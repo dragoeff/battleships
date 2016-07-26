@@ -10,7 +10,7 @@ define('DS', DIRECTORY_SEPARATOR);
 error_reporting(E_ALL ^ E_NOTICE);
 ini_set('display_errors', 'on');
 
-mb_internal_encoding('utf-8');
+//mb_internal_encoding('utf-8');
 
 
 /**
@@ -24,6 +24,10 @@ function getCoreComponents() {
 
 foreach (getCoreComponents() as $file) {
 	require(dirname(__FILE__) . DS . $file . '.php');
+}
+
+function is_cli() {
+	return 'cli' == Config()->ENVIRONMENT;
 }
 
 /**
@@ -59,6 +63,7 @@ function autoload($class_name) {
 	// if requested class is a model or core component and such file exists request it
 	if (
 		(($file = Config()->MODELS_PATH . $class_name . '.php') && file_exists($file) && require($file))
+		|| (($file = Config()->VIEWS_PATH . DS . $class_name . '.php') && file_exists($file) && require($file))
 		|| (($file = Config()->CORE_PATH . $class_name . '.php') && file_exists($file) && require($file))
 	) {
 		goto end;

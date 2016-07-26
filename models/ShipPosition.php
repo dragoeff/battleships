@@ -5,7 +5,7 @@
  *
  * @author Svetoslav Dragoev
  */
-class Shipdirection implements iGame {
+class ShipPosition implements iGame {
 
 	protected
 		$_grid,
@@ -28,21 +28,22 @@ class Shipdirection implements iGame {
 
 		// get ship direction - by x or y
 		$direction = $this->_getShipDirection();
+
 		// get ship start coordinates
 		$coordinates = $this->_generateRandomCoordinates();
-		// check if ship can fit/harbor at provided coordinates and direction
-		$can_ship_harbor = $this->check_ship_positioning($coordinates, $direction);
 
-		// if ship failed to harbor try again
-		if(!$can_ship_harbor) {
+		// if we can't fit the ship from the selected coordinates render again
+		if(!$this->_checkCoordinates($coordinates, $direction)) {
 			$this->place_ship();
 		} else {
+			// update grid and ship coordinates
 			for($i = 0; $i < $this->_ship_size; $i++) {
-				// set second grid having ships on it
-				$this->_grid[$coordinates['x']][$coordinates['y']] = iGame::SHIP;
+				// set second grid/military with the ships visible on it
+				// Grid matrix is saved in the form [Y, [X, X,...]] because we first generate the row and then he columns
+				$this->_grid[$coordinates['y']][$coordinates['x']] = iGame::SHIP;
 
 				// add ship coordinates: 'A4', 'A5', 'A6' ...
-				$this->_ship_coordinates[] = $coordinates['x'] . $coordinates['y'];
+				$this->_ship_coordinates[] = $coordinates['y'] . $coordinates['x'];
 
 				// set next cell
 				$coordinates[$direction]++;
@@ -102,8 +103,8 @@ class Shipdirection implements iGame {
 		$max = iGame::GRID_SIZE - $this->_ship_size;
 		
 		return [
-			'x' => mt_rand(0, $max),
 			'y' => mt_rand(0, $max),
+			'x' => mt_rand(0, $max),
 		];
 	}
 
@@ -119,7 +120,7 @@ class Shipdirection implements iGame {
 
 
 	/**
-	 * Check if random coordinates are in place
+	 * Check if random coordinates are blank
 	 *
 	 * @param array $coordinates - [x => 3, y => 2]
 	 * @param string $direction - either x or y
@@ -127,19 +128,24 @@ class Shipdirection implements iGame {
 	 * @return boolean
 	 * @access public
 	 */
-	public function check_ship_positioning(array $coordinates, $direction) {
-		$result = true;
-		$this->_ship_coordinates = [];
-		
-		for($i = 0; $i < $this->_ship_size; $i ++) {
-			if(!isset($this->_grid[$coordinates['x']][$coordinates['y']]) || $this->_grid[$coordinates['x']][$coordinates['y']] != iGame::BLANK) {
-				$result = false;
-				break;
-			}
+	protected function _checkCoordinates(array $coordinates, $direction) {
+		if(!empty($this->_grid)) {
+			// set range from selected coordinate until shipsize length
+			$ship_size_range = range($coordinates[$direction], $coordinates[$direction] + $this->_ship_size - 1);
 
-			$coordinates[$direction]++;
+			// check for clear water / all cells are blank
+			$ship_size_range = array_filter($ship_size_range, function($range_value) use($direction, $coordinates) {
+				$x = $y = $range_value;
+				'x' === $direction ? $y = $coordinates['y'] : $x = $coordinates['x'];
+
+				// is slot blank?
+				return iGame::BLANK == $this->_grid[$y][$x];
+			});
+
+			// if all slots in the ship range were blank then they should be the same number as ship size
+			return count($ship_size_range) == $this->_ship_size;
 		}
 
-		return $result;
+		return false;
 	}
 }
